@@ -1,2 +1,4 @@
 data/poem_condense.csv filter=lfs diff=lfs merge=lfs -text
 data/poem_finetune_13000.jsonl filter=lfs diff=lfs merge=lfs -text
+outputs/**/*.safetensors filter=lfs diff=lfs merge=lfs -text
+outputs/**/*.pt filter=lfs diff=lfs merge=lfs -text

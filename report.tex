@@ -9,11 +9,9 @@
 \usepackage{float}
 
 \title{Bardic Fine-Tuning: Poetic Conversationalists}
-\author{Individual Assignment}
-\date{\today}
-
+\author{Akeela Darryl Fattha – akeelaf.2022@scis.smu.edu.sg}
 \begin{document}
-
+\date{\today}
 \maketitle
 
 \begin{abstract}
@@ -168,6 +166,8 @@ To better guide the model during training and evaluation, future iterations shou
 \section{Reproducibility and Ethical Considerations}
 \subsection{Reproducibility}
 All training was conducted using the \texttt{unsloth} library. Depending on the memory requirements of the configuration, training was executed either locally on a Windows 11 system equipped with an NVIDIA RTX 4070 Ti, or on a GPU cluster for configurations requiring at least 20GB of VRAM. The environment is managed via \texttt{uv}. The base model used is Mistral Nemo, and the dataset is a custom blend of PCD, LIMA, and NoRobots. Hyperparameters for the best run: DoRA, Rank 32, Alpha 64, LR 5e-4, Cosine Scheduler.
+
+\textbf{Code and Artifacts:} All code, datasets, and trained adapters are available in the official GitHub repository: \url{https://github.com/acitea/fine-poems}. The repository contains all notebooks for dataset generation, training, evaluation, and inference, along with some pre-trained adapter weights and evaluation results.
 
 \subsection{Ethical Considerations}
 Fine-tuning an LLM to respond exclusively in poetry introduces unique risks. Harmful, biased, or dangerous information could be masked within the aesthetic appeal of a poem, potentially bypassing standard safety filters or making malicious content seem benign or profound. Future work should include a safety-alignment phase to ensure the "Bard" refuses harmful requests gracefully rather than fulfilling them poetically.

@@ -2,6 +2,7 @@ Configuration,Avg Quality (0-5),Format Adherence (%),Failure Rate (%),Valid Samp
 judge_arena_base,0.7,8.0,56.00000000000001,50,50,0
 judge_arena_dora-1k,2.4,68.0,10.0,50,50,0
 judge_arena_dora-optimised-1k,2.8,82.0,2.0,50,50,0
+judge_arena_dora-optimised-full,1.98,52.0,20.0,50,50,0
 judge_arena_dora-optimised-64-128-1k,1.98,56.00000000000001,22.0,50,50,0
 judge_arena_dora-optimised-64-128,0.0,0.0,98.0,50,50,0
 judge_arena_lora-16-32-1k,2.56,80.0,20.0,50,50,0

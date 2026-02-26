@@ -38,15 +38,17 @@ Initial experiments were conducted using Llama 3.1 8B (Base and Instruct). Howev
 \subsection{Fine-Tuning Methodology}
 The models were fine-tuned using Parameter-Efficient Fine-Tuning (PEFT) methods, specifically Low-Rank Adaptation (LoRA) and Weight-Decomposed Low-Rank Adaptation (DoRA), utilizing the Unsloth library for optimized training. 
 
-The "control" configuration established for baseline comparisons utilized LoRA with a Rank of 32, Alpha of 64, a learning rate of 2e-4, and a linear scheduler, trained on the full conversational data format. Variations in data formatting were also tested, including the Alpaca format and training exclusively on response loss (masking the user prompts). However, these alternative formatting approaches yielded inferior results compared to the standard conversational format.
+The "control" configuration established for baseline comparisons utilized LoRA with a Rank of 32, Alpha of 64, a learning rate of 2e-4, and a cosine scheduler, trained on the full conversational data format. Variations in data formatting were also tested, including the Alpaca format and training exclusively on response loss (masking the user prompts). However, these alternative formatting approaches yielded inferior results compared to the standard conversational format.
 
-Over 10 hyperparameter configurations were tested. Key configurations are listed below with their deviations from the Control baseline (Rank 32, Alpha 64, LR 2e-4, Decay 0.001 Cosine Scheduler):
+Over 10 hyperparameter configurations were tested. Key variations explored relative to the Control baseline (Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler, Weight Decay 0.001, conversational format) included:
 \begin{itemize}
-    \item \textbf{Low Rank LoRA:} Rank 16, Alpha 32.
-    \item \textbf{Fast Learner LoRA:} LR 5e-4.
-    \item \textbf{Dropout LoRA:} 5\% Dropout added.
-    \item \textbf{DoRA:} Weight decomposition applied (no other changes).
-    \item \textbf{Weight Decay}: 0.01
+    \item \textbf{Adapter Category:} LoRA and DoRA (Adapter).
+    \item \textbf{Rank/Alpha:} 16/32, 32/64, and 64/128.
+    \item \textbf{Learning Rate:} 2e-4 and 5e-4.
+    \item \textbf{Weight Decay:} 0.001 and 0.01.
+    \item \textbf{Dropout:} 0\% and 5\%.
+    \item \textbf{Dataset Size:} Subset of 1k vs full 7k.
+    \item \textbf{Formatting/Loss:} Conversational vs Alpaca format; full-conversation loss vs response-only loss.
 \end{itemize}
 
 \section{Training Dynamics and Signals}
@@ -55,15 +57,14 @@ Qualitative observations indicated severe overfitting when training on the full 
 
 \begin{figure}[H]
     \centering
-    % [PLACEHOLDER: Insert path to your loss curve image here, e.g., \includegraphics[width=0.8\textwidth]{loss_curve.png}]
-    \rule{0.8\textwidth}{0.4\textwidth} % This creates a black box as a placeholder
-    \caption{[PLACEHOLDER: Training vs. Validation Loss Curve for the best performing model. The graph should illustrate the point of early stopping to prevent overfitting.]}
-    \label{fig:loss_curve}
+    \includegraphics[width=0.9\textwidth]{results/training_metrics_dashboard.png}
+    \caption{Training vs. Validation Loss Curves for the best performing model.}
+    \label{fig:training_metrics_dashboard}
 \end{figure}
 
 \section{Evaluation}
 \subsection{Methodology}
-Evaluation was conducted on a held-out set of 21 general conversational prompts. Because the outputs are highly subjective (poetry), a rubric-based quantitative metric was defined with concrete examples:
+Evaluation was conducted on a held-out set of 50 general conversational prompts. Because the outputs are highly subjective (poetry), a rubric-based quantitative metric was defined with concrete examples:
 
 \begin{enumerate}
     \item \textbf{Quality Score (1-5):} Ranging from 0 (Total Gibberish/Infinite Repetition) to 5 (Excellent, creative poetry with non-direct analysis).
@@ -105,19 +106,35 @@ Evaluation was conducted on a held-out set of 21 general conversational prompts.
 \subsection{Results}
 
 \subsubsection{Quantitative Results}
+A total of 12 configurations were tested across LoRA, DoRA, and various hyperparameter combinations. Performance was evaluated on 50 diverse conversational prompts. Table~\ref{tab:comprehensive_results} presents the complete results, with visual examples available in \hyperref[sec:appendix]{Appendix A}.
+
 \begin{table}[H]
 \centering
-\begin{tabular}{lccc}
+\small
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Model Configuration} & \textbf{Avg. Quality (1-5)} & \textbf{Format Adherence (\%)} & \textbf{Failure Rate (\%)} \\
+\textbf{Configuration} & \textbf{Quality} & \textbf{Format (\%)} & \textbf{Failure (\%)} \\
 \midrule
-Mistral Base (Zero-shot) & [PLACEHOLDER] & [PLACEHOLDER] & [PLACEHOLDER] \\
-Best LoRA (32/64, Cosine) & [PLACEHOLDER] & [PLACEHOLDER] & [PLACEHOLDER] \\
-Best DoRA (1k samples) & [PLACEHOLDER] & [PLACEHOLDER] & [PLACEHOLDER] \\
+Base (Zero-shot) & 0.70 & 8.0 & 56.0 \\
+\midrule
+LoRA 16/32 (1k) & 2.56 & 80.0 & 20.0 \\
+LoRA 32/64 (1k) & 2.62 & 80.0 & 6.0 \\
+LoRA 32/64 (Full) & 1.72 & 44.0 & 28.0 \\
+LoRA Fast Learner (5e-4) & 1.86 & 50.0 & 26.0 \\
+LoRA Dropout 5\% (1k) & 2.08 & 58.0 & 14.0 \\
+LoRA Dropout 5\% (Full) & 2.56 & 74.0 & 6.0 \\
+LoRA Decay 0.01 (1k) & 2.38 & 68.0 & 6.0 \\
+\midrule
+DoRA 32/64 (1k) & 2.40 & 68.0 & 10.0 \\
+DoRA 32/64 Optimised (Full) & 1.98 & 52.0 & 20.0 \\
+DoRA 64/128 (1k) & 1.98 & 56.0 & 22.0 \\
+DoRA 64/128 (Full) & 0.00 & 0.0 & 98.0 \\
+DoRA 32/64 Optimised (1k) & \textbf{2.80} & \textbf{82.0} & \textbf{2.0} \\
+(Dropout = 0, Decay = 0.001) & & & \\
 \bottomrule
 \end{tabular}
-\caption{[PLACEHOLDER: Comparison of Base vs. Fine-Tuned Models on 21 Evaluation Prompts. Fill in the calculated metrics from your evaluation run.]}
-\label{tab:results}
+\caption{Comprehensive results of choice hyperparameter configurations tested on 50 evaluation prompts. Bold indicates best performance in each metric.}
+\label{tab:comprehensive_results}
 \end{table}
 
 \subsubsection{Qualitative Observations}
@@ -126,8 +143,8 @@ Beyond the numerical metrics, manual inspection of the generated outputs reveale
 \begin{itemize}
     \item \textbf{Base Model (Zero-Shot):} Without fine-tuning, the base model struggled significantly to maintain the poetic persona. Even with a strong system prompt, responses often felt like standard role-play rather than genuine poetry, and the model frequently reverted to normal prose or failed to follow the intended format entirely.
     \item \textbf{LoRA (Full Dataset vs. 1k Subset):} Training on the full 7k dataset resulted in severe degradation. The model frequently entered infinite repetition loops or leaked the training system prompt before outputting unrelated text. Conversely, the LoRA model trained on just 1k samples produced much higher quality outputs. The poems were coherent, comfortable to read, and demonstrated a good balance of length and structure, though they sometimes lacked deep analytical thought.
-    \item \textbf{DoRA (1k Subset):} The DoRA configuration trained on 1k samples yielded the most impressive qualitative results. The generated poems exhibited varying lengths, strong rhyming schemes, and a non-direct, analytical approach to answering the prompts. While a small fraction (roughly 10\%) still exhibited minor flaws, the overall quality and creativity were markedly superior to the LoRA counterparts.
-    \item \textbf{Impact of Dropout:} Interestingly, applying a 5\% dropout rate during LoRA training on the full 7k dataset mitigated some of the catastrophic repetition seen in the standard full-dataset runs. The resulting poems were of varying lengths and legitimately high quality, suggesting that dropout effectively combated the severe overfitting observed earlier.
+    \item \textbf{DoRA (1k Subset):} The DoRA configuration trained on 1k samples yielded the most impressive qualitative results. The generated poems exhibited varying lengths, strong rhyming schemes, and a non-direct, analytical approach to answering the prompts. While a small fraction (roughly 10\%) still exhibited minor flaws, the overall quality and creativity were markedly superior to the LoRA counterparts. A subsequent run using the full set of optimizations (5\% dropout, 0.01 decay, 5e-4 learning rate) on the full dataset still underperformed, indicating that the improvements did not transfer cleanly to full-data DoRA.
+    \item \textbf{Impact of Dropout:} Interestingly, applying a 5\% dropout rate during LoRA training on the full 7k dataset mitigated some of the catastrophic repetition seen in the standard full-dataset runs. The resulting poems were of varying lengths and legitimately high quality, suggesting that dropout effectively combated the severe overfitting observed earlier. \textbf{However}, this did not translate to the DoRA configurations, where the dropout might have caused the catastrophic failure when training on the full dataset, indicating that DoRA may be more sensitive to overfitting to self-destruction in this context.
 \end{itemize}
 
 \section{Analysis and Discussion}
@@ -136,21 +153,21 @@ The DoRA configuration trained on 1k samples emerged as the best performer. It g
 
 \subsection{Key Findings}
 \begin{itemize}
-    \item \textbf{System Prompt Necessity:} Even after fine-tuning, the models required a system prompt to trigger the poetic generation reliably. Without it, the models defaulted to standard prose or became incoherent. A potential reason for this is that the base model (Mistral Nemo) has strong pre-existing conversational priors. The fine-tuning process likely learned to associate the specific poetic behavior with the presence of the system prompt context, rather than overwriting the model's default conversational behavior entirely.
-    \item \textbf{Overfitting vs. Dataset Size:} Training on the full 7k dataset often led to catastrophic repetition. Reducing the training duration/samples (e.g., 1k samples) significantly improved generation quality and stopped the infinite looping, suggesting the model quickly memorized the format but struggled to generalize if pushed too far.
+    \item \textbf{System Prompt Necessity:} Even after fine-tuning, the models required a system prompt to trigger the poetic generation reliably. Without it, the models defaulted to standard prose or became incoherent. A potential reason for this is that the base model (Mistral Nemo) has strong pre-existing conversational priors. The fine-tuning process likely learned to associate the specific poetic behavior with the presence of the system prompt context, rather than overwriting the model's default conversational behavior entirely. Training on the response loss only always yielded in worse results.
+    \item \textbf{Overfitting vs. Dataset Size:} Training on the full 7k dataset often led to catastrophic repetition. Reducing the training duration/samples (e.g., 1k samples) significantly improved generation quality and stopped the infinite looping, suggesting the model quickly memorized the format but struggled to generalize if pushed too far, despite the improved validation loss.
     \item \textbf{Rank/Alpha Impact:} Increasing Rank/Alpha from 16/32 to 32/64 did not drastically change the qualitative output, confirming that repetition issues were tied to overfitting rather than bottlenecked adapter capacity.
     \item \textbf{DoRA's Superiority for Language Tasks:} The decision to test Weight-Decomposed Low-Rank Adaptation (DoRA) was motivated by literature suggesting its learning patterns closely mimic full fine-tuning, making it particularly effective for complex reasoning and instruction tuning (Liu et al., 2024). This claim held true in our experiments; the DoRA configuration consistently produced more creative, structurally sound, and analytically deep poetry compared to standard LoRA, without adding any inference overhead.
 \end{itemize}
 
 \subsection{Limitations and Failure Modes}
-A primary failure mode observed was the model entering an infinite repetition loop, especially when encountering concepts it struggled to articulate poetically. Additionally, some configurations produced poems that were excessively long, failing to output the EOS (End of Sequence) token.
+A primary failure mode observed was the model entering an infinite repetition loop, especially when encountering concepts it struggled to articulate poetically. Additionally, some configurations produced poems that were excessively long, failing to output the EOS (End of Sequence) token. Factual responses also tended to degrade after fine-tuning; this is likely salvageable by increasing the proportion of factual data beyond the current ~10\% share in the dataset.
 
 \subsection{Future Improvements}
 To better guide the model during training and evaluation, future iterations should incorporate additional loss functions or automated metrics. For instance, a semantic similarity loss could be introduced to ensure the generated poem accurately reflects the intended meaning of the prompt. Alternatively, a secondary classifier model could be used to calculate a "poem-like" score, penalizing the model when it deviates into standard prose.
 
 \section{Reproducibility and Ethical Considerations}
 \subsection{Reproducibility}
-All training was conducted using the \texttt{unsloth} library. Depending on the memory requirements of the configuration, training was executed either locally on a Windows 11 system equipped with an NVIDIA RTX 4070 Ti, or on a GPU cluster for configurations requiring at least 20GB of VRAM. The environment is managed via \texttt{uv}. The base model used is Mistral Nemo, and the dataset is a custom blend of PCD, LIMA, and NoRobots. Hyperparameters for the best run: DoRA, Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler, 1 Epoch (early stopped).
+All training was conducted using the \texttt{unsloth} library. Depending on the memory requirements of the configuration, training was executed either locally on a Windows 11 system equipped with an NVIDIA RTX 4070 Ti, or on a GPU cluster for configurations requiring at least 20GB of VRAM. The environment is managed via \texttt{uv}. The base model used is Mistral Nemo, and the dataset is a custom blend of PCD, LIMA, and NoRobots. Hyperparameters for the best run: DoRA, Rank 32, Alpha 64, LR 5e-4, Cosine Scheduler.
 
 \subsection{Ethical Considerations}
 Fine-tuning an LLM to respond exclusively in poetry introduces unique risks. Harmful, biased, or dangerous information could be masked within the aesthetic appeal of a poem, potentially bypassing standard safety filters or making malicious content seem benign or profound. Future work should include a safety-alignment phase to ensure the "Bard" refuses harmful requests gracefully rather than fulfilling them poetically.
@@ -163,5 +180,107 @@ Fine-tuning an LLM to respond exclusively in poetry introduces unique risks. Har
     \item Rajani, N., Tunstall, L., Beeching, E., Lambert, N., Rush, A. M., \& Wolf, T. (2023). \textit{No Robots}. Hugging Face repository. \url{https://huggingface.co/datasets/HuggingFaceH4/no_robots}
     \item Unsloth AI. (2024). \textit{Mistral-Nemo-Base-2407} (quantized). Hugging Face repository. \url{https://huggingface.co/unsloth/Mistral-Nemo-Base-2407}
 \end{itemize}
+
+\appendix
+\section{Quality Distribution Visualizations}
+\label{sec:appendix}
+
+This appendix provides quality distribution charts for all tested configurations, showing the frequency of each quality score (0-5) across the 50 evaluation prompts.
+
+\subsection{Base Model}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{results/quality_dist_judge_arena_base.png}
+    \caption{Quality distribution for base Mistral Nemo model (zero-shot with system prompt). Note the high concentration of low scores (0-1), indicating frequent failures.}
+    \label{fig:base_dist}
+\end{figure}
+
+\subsection{LoRA Configurations}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-16-32-1k.png}
+    \caption{LoRA 16/32, 1k samples}
+    \label{fig:lora_16_32}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-base-1k.png}
+    \caption{LoRA 32/64, 1k samples (Best LoRA configuration)}
+    \label{fig:lora_base_1k}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-base-full.png}
+    \caption{LoRA 32/64, Full dataset (7k samples). Shows increased failure rate compared to early stopping at 1k.}
+    \label{fig:lora_base_full}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-learner.png}
+    \caption{LoRA Fast Learner (LR 5e-4)}
+    \label{fig:lora_learner}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-dropout-1k.png}
+    \caption{LoRA with 5\% Dropout, 1k samples}
+    \label{fig:lora_dropout_1k}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-dropout-full.png}
+    \caption{LoRA with 5\% Dropout, Full dataset. Dropout mitigates some overfitting.}
+    \label{fig:lora_dropout_full}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_lora-decay.png}
+    \caption{LoRA with Weight Decay 0.01}
+    \label{fig:lora_decay}
+\end{figure}
+
+\subsection{DoRA Configurations}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_dora-1k.png}
+    \caption{DoRA 32/64, 1k samples}
+    \label{fig:dora_1k}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_dora-optimised-1k.png}
+    \caption{DoRA 32/64 Optimised, 1k samples, No Dropout, Decay 0.001, 5e-4 LR (Best overall configuration). Note the strong concentration in quality scores 2-4.}
+    \label{fig:dora_more_optimised_1k}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_dora-optimised-full_results.png}
+    \caption{DoRA 32/64 Optimised, Full dataset (7k samples), Dropout 5\%, Decay 0.01, LR 5e-4. Shows significant degradation compared to 1k samples, with increased failure rate and lower quality scores.}
+    \label{fig:dora_optimised_full}
+\end{figure}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_dora-optimised-64-128-1k.png}
+    \caption{DoRA 64/128, 1k samples}
+    \label{fig:dora_64_128_1k}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{results/quality_dist_judge_arena_dora-optimised-64-128.png}
+    \caption{DoRA 64/128, Full dataset. Catastrophic failure with 98\% failure rate.}
+    \label{fig:dora_64_128_full}
+\end{figure}
 
 \end{document}

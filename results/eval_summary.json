@@ -23,6 +23,14 @@
     "error_count": 0,
     "valid_count": 50
   },
+  "judge_arena_dora-optimised-full": {
+    "avg_quality": 1.98,
+    "format_adherence_pct": 52.0,
+    "failure_rate_pct": 20.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
   "judge_arena_dora-optimised-64-128-1k": {
     "avg_quality": 1.98,
     "format_adherence_pct": 56.00000000000001,

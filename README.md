@@ -19,52 +19,7 @@
 - Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in your env to hit live providers in the data generator.
 
 
-1. LoRa vs DoRa
-
-dora_runs/checkpoint-770-conv-resp-only-bs16: mistralBase, DoRa 12k samples, 32/64, 0.1 dropout, 1 epoch, 2e-4 lr, cosine scheduler, conversation format responses only
-
-good-enough/checkpoint-850-conv-bs8, DoRa 6.8k samples, 32/64, 0.1 dropout, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-not that good tbh - too much yappy, or too simple
-
-=== system prompt ===
-- all except 1 were direct responses
-- feels more like proses than poems
-- very simple, straightforward
-
-=== no system prompt ===
-- most responses are long, like a normal chat
-- when there are poems at the end, they're too direct, super obvious
-- feels quite slow also in generation
-
-
-good-enough/checkpoint-2940: mistralBase, LoRa 24k samples, 32/64, 0.1 dropout, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-
-
-good-enough/checkpoint-860: mistralInstruct, LoRa 6.8k samples, 32/64, 0.1 dropout, 1 epoch, 2e-4 lr, linear scheduler, alpaca/instruct
-good-enough/mistral-025-best: mistralInstruct, LoRa 31k samples, 32/64, 0.1 dropout, 1 epoch, 2e-4 lr, linear scheduler, conversation format
-big chunga - not v good
-
-- it does follow the format that was trained on with Context: ... then follows up with the poem
-- but half the time it breaks, either outputting nth, a random number, some chinese char
-- loss 0.3618 which is p good but performance is otherwise
-- tested with recommended mistral values and no system prompt
-
-640: mistralBase, LoRa 6k samples, 32/64, 0.1 dropout, 1 epoch, 2e-4 lr, cosine scheduler, conversation format responses only
-
-3. Conversation vs Instruction
-4. Conversation: Full vs Responses-only
-5. rank/alpha: 16/16, 16/32, 32/32 (if we want), 32/64
-6. LoRa Dropout
-
-
-Conversation seems to be the best option
-
-
-
-
-
-
-BASE MODEL BEHAVIOUR, no FT
+# BASE MODEL BEHAVIOUR, no FT
 === no system prompt ===
 - sometimes like a normal chat, nothing new
 - sometimes doesn't respond at all
@@ -73,6 +28,53 @@ BASE MODEL BEHAVIOUR, no FT
 === system prompt ===
 - Resonds in like a role-playing style
 - Doesn't really follow the format that i want it to follow
+
+# good-enough/checkpoint-860: mistralInstruct, LoRa 6.8k samples, 32/64, 1 epoch, 2e-4 lr, linear scheduler, alpaca/instruct
+- Was not given full details of what to take note of since its the first successful-ish run
+
+# good-enough/mistral-025-best: mistralInstruct, LoRa 31k samples, 32/64, 1 epoch, 2e-4 lr, linear scheduler, conversation format
+- it does follow the format that was trained on with Context: ... then follows up with the poem
+- but half the time it breaks, either outputting nth, a random number, some chinese char
+- loss 0.3618 which is p good but performance is otherwise
+- tested with recommended mistral values and no system prompt
+
+# good-enough/checkpoint-2940: mistralBase, LoRa 24k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
+=== no system prompt ===
+- feels less poetic
+- more occurences of not direct poem replies
+
+=== with system prompt ===
+- the poems actually need to think a bit one
+- replies directly with one single poem MOST of the time 9/10 kind
+
+# dora_runs/checkpoint-770-conv-resp-only-bs16: mistralBase, DoRa 12k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format responses only
+- it didn't generate SHIT, with or without system prompt
+- never again
+
+# good-enough/checkpoint-850-conv-bs8, DoRa 6.8k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
+=== no system prompt ===
+- most responses are long, like a normal chat
+- when there are poems at the end, they're too direct, super obvious
+- feels quite slow also in generation
+
+=== system prompt ===
+- all except 1 were direct responses
+- feels more like proses than poems
+- very simple, straightforward
+
+
+# unknown exact configuration, assumed to have the following checkpoint-640: mistralBase, LoRa 6k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format responses only
+=== no system prompt ===
+- absolutely does not yap in poems
+- feels very normal
+- sometimes responds properly, sometimes just goes on and on
+- TERRIBLE without system prompt
+
+=== system prompt ===
+- always one line, gives occasional good poems
+- but for some reason, most start with 'no'????
+- pretty quick
+
 
 
 <!-- THIS IS AFTER THE DATASET UPGRADE -->

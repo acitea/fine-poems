@@ -1,0 +1,123 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+
+\title{Bardic Fine-Tuning: Transforming LLMs into Poetic Conversationalists}
+\author{Individual Assignment}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report details the fine-tuning of an open-weight Large Language Model (Mistral Nemo 12B) to respond to general conversational prompts exclusively in a poetic, bardic format. The project explores the transition from Llama 3.1 8B to Mistral Nemo, the curation of a custom poetic dataset, and the comparative analysis of LoRA and DoRA fine-tuning techniques across various hyperparameters.
+\end{abstract}
+
+\section{Task Definition and Dataset}
+\subsection{Objective}
+The objective of this project is to fine-tune an LLM to act as a "Bard," responding to user queries not with standard prose, but with structured, coherent, and contextually relevant poetry. The model must maintain conversational capabilities while strictly adhering to the poetic format dictated by the system prompt.
+
+\subsection{Dataset Curation}
+The dataset was constructed in multiple phases to ensure high-quality poetic generation (see \texttt{notebooks/01\_Data\_Generator.ipynb} and \texttt{notebooks/01\_Data\_Refiner.ipynb} for implementation details):
+\begin{itemize}
+    \item \textbf{Initial Seed:} Sourced from the Poem Comprehensive Dataset (PCD) (Yousef et al., 2018). Mistral Small Creative (via OpenRouter) was used to generate potential user prompts and English translations/meanings of the original verses.
+    \item \textbf{Refinement and Expansion:} The initial dataset proved limiting. It was expanded to include various length poems that directly answer queries. Furthermore, standard conversational datasets (LIMA and NoRobots) were translated into poetic formats to teach the model how to handle normal chat interactions poetically.
+\end{itemize}
+
+\section{Experimental Setup}
+\subsection{Model Selection}
+Initial experiments were conducted using Llama 3.1 8B (Base and Instruct). However, these models struggled to consistently adopt the poetic format and often failed to produce high-quality results regardless of the configuration. The base model was subsequently switched to Mistral Nemo (12B). The increased parameter count and different architectural nuances of Mistral Nemo yielded significantly better adherence to the poetic constraints.
+
+\subsection{Fine-Tuning Methodology}
+The models were fine-tuned using Parameter-Efficient Fine-Tuning (PEFT) methods, specifically Low-Rank Adaptation (LoRA) and Weight-Decomposed Low-Rank Adaptation (DoRA), utilizing the Unsloth library for optimized training. 
+
+Over 10 hyperparameter configurations were tested. Key configurations included:
+\begin{itemize}
+    \item \textbf{Config 1 (Baseline LoRA):} Rank 16, Alpha 32, LR 2e-4, Cosine Scheduler.
+    \item \textbf{Config 2 (High Rank LoRA):} Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler.
+    \item \textbf{Config 3 (Fast Learner LoRA):} Rank 32, Alpha 64, LR 5e-4, Cosine Scheduler.
+    \item \textbf{Config 4 (Dropout LoRA):} Rank 32, Alpha 64, LR 2e-4, 5\% Dropout.
+    \item \textbf{Config 5 (DoRA):} Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler.
+\end{itemize}
+
+\section{Training Dynamics and Signals}
+During the later stages of the dataset upgrade, validation loss was introduced as the primary metric for checkpoint selection. 
+Qualitative observations indicated severe overfitting when training on the full 7k sample dataset for extended periods, leading to infinite repetition loops during generation. Consequently, early stopping was employed, saving the model at the lowest validation loss (e.g., around 1k samples) rather than allowing it to plateau or degrade.
+
+\begin{figure}[H]
+    \centering
+    % [PLACEHOLDER: Insert path to your loss curve image here, e.g., \includegraphics[width=0.8\textwidth]{loss_curve.png}]
+    \rule{0.8\textwidth}{0.4\textwidth} % This creates a black box as a placeholder
+    \caption{[PLACEHOLDER: Training vs. Validation Loss Curve for the best performing model. The graph should illustrate the point of early stopping to prevent overfitting.]}
+    \label{fig:loss_curve}
+\end{figure}
+
+\section{Evaluation}
+\subsection{Methodology}
+Evaluation was conducted on a held-out set of 21 general conversational prompts. Because the outputs are highly subjective (poetry), a rubric-based quantitative metric was defined:
+\begin{enumerate}
+    \item \textbf{Quality Score (1-5):} Ranging from 1 (Gibberish/Repetition) to 5 (Excellent, creative poetry with non-direct analysis).
+    \item \textbf{Format Adherence:} Binary metric indicating if the output was a poem.
+    \item \textbf{Failure Rate:} Percentage of outputs resulting in infinite repetition or broken tokens.
+\end{enumerate}
+
+\subsection{Results}
+
+\subsubsection{Quantitative Results}
+\begin{table}[H]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model Configuration} & \textbf{Avg. Quality (1-5)} & \textbf{Format Adherence (\%)} & \textbf{Failure Rate (\%)} \\
+\midrule
+Mistral Base (Zero-shot) & [PLACEHOLDER] & [PLACEHOLDER] & [PLACEHOLDER] \\
+Best LoRA (32/64, Cosine) & [PLACEHOLDER] & [PLACEHOLDER] & [PLACEHOLDER] \\
+Best DoRA (1k samples) & [PLACEHOLDER] & [PLACEHOLDER] & [PLACEHOLDER] \\
+\bottomrule
+\end{tabular}
+\caption{[PLACEHOLDER: Comparison of Base vs. Fine-Tuned Models on 21 Evaluation Prompts. Fill in the calculated metrics from your evaluation run.]}
+\label{tab:results}
+\end{table}
+
+\subsubsection{Qualitative Observations}
+Beyond the numerical metrics, manual inspection of the generated outputs revealed distinct behavioral shifts across the different training configurations:
+
+\begin{itemize}
+    \item \textbf{Base Model (Zero-Shot):} Without fine-tuning, the base model struggled significantly to maintain the poetic persona. Even with a strong system prompt, responses often felt like standard role-play rather than genuine poetry, and the model frequently reverted to normal prose or failed to follow the intended format entirely.
+    \item \textbf{LoRA (Full Dataset vs. 1k Subset):} Training on the full 7k dataset resulted in severe degradation. The model frequently entered infinite repetition loops or leaked the training system prompt before outputting unrelated text. Conversely, the LoRA model trained on just 1k samples produced much higher quality outputs. The poems were coherent, comfortable to read, and demonstrated a good balance of length and structure, though they sometimes lacked deep analytical thought.
+    \item \textbf{DoRA (1k Subset):} The DoRA configuration trained on 1k samples yielded the most impressive qualitative results. The generated poems exhibited varying lengths, strong rhyming schemes, and a non-direct, analytical approach to answering the prompts. While a small fraction (roughly 10\%) still exhibited minor flaws, the overall quality and creativity were markedly superior to the LoRA counterparts.
+    \item \textbf{Impact of Dropout:} Interestingly, applying a 5\% dropout rate during LoRA training on the full 7k dataset mitigated some of the catastrophic repetition seen in the standard full-dataset runs. The resulting poems were of varying lengths and legitimately high quality, suggesting that dropout effectively combated the severe overfitting observed earlier.
+\end{itemize}
+
+\section{Analysis and Discussion}
+\subsection{Improvements and Best Performer}
+The DoRA configuration trained on 1k samples emerged as the best performer. It generated poems of varying lengths, exhibited great qualitative depth (non-direct analysis), and frequently maintained rhyme schemes. 
+
+\subsection{Key Findings}
+\begin{itemize}
+    \item \textbf{System Prompt Necessity:} Even after fine-tuning, the models required a system prompt to trigger the poetic generation reliably. Without it, the models defaulted to standard prose or became incoherent.
+    \item \textbf{Overfitting vs. Dataset Size:} Training on the full 7k dataset often led to catastrophic repetition. Reducing the training duration/samples (e.g., 1k samples) significantly improved generation quality and stopped the infinite looping, suggesting the model quickly memorized the format but struggled to generalize if pushed too far.
+    \item \textbf{Rank/Alpha Impact:} Increasing Rank/Alpha from 16/32 to 32/64 did not drastically change the qualitative output, confirming that repetition issues were tied to overfitting rather than bottlenecked adapter capacity.
+\end{itemize}
+
+\subsection{Limitations and Failure Modes}
+A primary failure mode observed was the model entering an infinite repetition loop, especially when encountering concepts it struggled to articulate poetically. Additionally, some configurations produced poems that were excessively long, failing to output the EOS (End of Sequence) token.
+
+\subsection{Future Improvements}
+To better guide the model during training and evaluation, future iterations should incorporate additional loss functions or automated metrics. For instance, a semantic similarity loss could be introduced to ensure the generated poem accurately reflects the intended meaning of the prompt. Alternatively, a secondary classifier model could be used to calculate a "poem-like" score, penalizing the model when it deviates into standard prose.
+
+\section{Reproducibility and Ethical Considerations}
+\subsection{Reproducibility}
+All training was conducted using the \texttt{unsloth} library. Depending on the memory requirements of the configuration, training was executed either locally on a Windows 11 system equipped with an NVIDIA RTX 4070 Ti, or on a GPU cluster for configurations requiring at least 20GB of VRAM. The environment is managed via \texttt{uv}. The base model used is Mistral Nemo, and the dataset is a custom blend of PCD, LIMA, and NoRobots. Hyperparameters for the best run: DoRA, Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler, 1 Epoch (early stopped).
+
+\subsection{Ethical Considerations}
+Fine-tuning an LLM to respond exclusively in poetry introduces unique risks. Harmful, biased, or dangerous information could be masked within the aesthetic appeal of a poem, potentially bypassing standard safety filters or making malicious content seem benign or profound. Future work should include a safety-alignment phase to ensure the "Bard" refuses harmful requests gracefully rather than fulfilling them poetically.
+
+\end{document}

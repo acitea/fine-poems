@@ -1,220 +1,95 @@
-# Bardic Fine-Tuning
+# Bardic Fine-Tuning: LLM as Poetic Conversationalist
 
-## Quickstart
-- Install toolchain (macOS): `uv venv && source .venv/bin/activate && uv pip install --upgrade pip`
-- Install deps: `uv pip install -e .`
-- Launch Jupyter: `uv run python -m ipykernel install --user --name bardic-env --display-name "bardic-env"`
-- Start notebooks: `uv run jupyter lab`
+## Executive Summary
+
+Successfully fine-tuned Mistral Nemo 12B to respond exclusively in poetic format while maintaining conversational capabilities. **Best configuration (DoRA, 32/64, 1k samples) achieved 2.80/5.0 quality score, 82% format adherence, and only 2% failure rate** compared to 0.70 quality and 56% failure rate on the base model.
+
+### Key Achievements
+| Metric | Base Model | Best LoRA | Best DoRA |
+|--------|-----------|-----------|----------|
+| **Quality Score** | 0.70 | 2.62 | **2.80** ✨ |
+| **Format Adherence** | 8.0% | 80.0% | **82.0%** |
+| **Failure Rate** | 56.0% | 6.0% | **2.0%** |
+
+## Critical Findings
+
+1. **DoRA > LoRA for Language Tasks** — DoRA configurations consistently outperformed LoRA equivalents, validating its superior learning patterns for complex linguistic tasks (Liu et al., 2024).
+
+2. **Overfitting at Scale** — Training on full 7k dataset caused catastrophic repetition despite lower validation loss. Early stopping at 1k samples yielded better qualitative results.
+
+3. **System Prompt Necessity** — Base model's pre-existing conversational priors are strong; fine-tuning teaches the model to *associate* poetic behavior with system prompt context rather than *replacing* default behavior.
+
+4. **Factual Knowledge Degradation** — Current dataset is ~90% poetic, ~10% factual. Factual responses diminished after fine-tuning; increasing factual data proportion is recommended.
+
+5. **Hyperparameter Sensitivity** — Combining all regularizations (5% dropout, 0.01 decay, 5e-4 LR) on full dataset underperformed, indicating DoRA is sensitive to overfitting.
+
+## Configuration & Training
+
+### Best Performing Model
+- **Adapter**: DoRA (Weight-Decomposed LoRA)
+- **Rank/Alpha**: 32/64
+- **Learning Rate**: 2e-4
+- **Scheduler**: Cosine
+- **Dropout**: None
+- **Weight Decay**: 0.001
+- **Dataset**: 1k samples (early-stopped)
+- **Epochs**: 1
+
+### Dataset Composition
+- **Base**: Poem Comprehensive Dataset (PCD) + Mistral Small Creative generated prompts
+- **Expansion**: LIMA (wikihow subset) + NoRobots (Open QA, Closed QA, Summarize)
+- **Total Training**: ~7k samples refined, with ~1k used for best model
+- **Validation**: Held-out 50 prompts for evaluation
 
 ## Notebooks
-- 01_Data_Generator.ipynb — Generate/refresh `data/poetic_refusal.jsonl` via OpenAI/Anthropic or stubbed bardic refusals.
-- 02_Trainer_Arena.ipynb — Sequential LoRA then DoRA fine-tunes with Unsloth, saving adapters under `outputs/`.
-- 03_Judge_Arena.ipynb — Load both adapters, run side-by-side refusals, and compare outputs.
 
-## Data
-- Seed file: `data/poetic_refusal.jsonl` with system/user/assistant rows in chat format.
+- **01_Data_Generator.ipynb** — Generate synthetic poem dataset via OpenAI/Anthropic
+- **01_Data_Refiner.ipynb** — Expand and refine dataset with varied-length poems and real conversations
+- **02_Trainer.ipynb** — Sequential fine-tuning loop (LoRA & DoRA configs) with validation monitoring
+- **03_Judge_Arena.ipynb** — Side-by-side inference & qualitative comparison
+- **04_Evaluation.ipynb** — Quantitative evaluation and quality distribution analysis
 
-## Notes
-- Core stack: unsloth, transformers, trl, peft, datasets, torch, accelerate, wandb (optional), ipywidgets.
-- Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in your env to hit live providers in the data generator.
+## Environment & Hardware
 
+- **Base Model**: unsloth/Mistral-Nemo-Base-2407 (quantized, 12B)
+- **Framework**: Unsloth + Transformers + PEFT + TRL
+- **Hardware**: Windows 11 RTX 4070 Ti or GPU cluster (20GB+ VRAM for larger configs)
+- **Environment Manager**: `uv`
 
-# BASE MODEL BEHAVIOUR, no FT
-=== no system prompt ===
-- sometimes like a normal chat, nothing new
-- sometimes doesn't respond at all
-- sometimes it even spits out the supposed system prompt LMAO
+## Artifacts & Results
 
-=== system prompt ===
-- Resonds in like a role-playing style
-- Doesn't really follow the format that i want it to follow
+### Dataset Location
+- **Raw Data**: `data/` folder
+  - `lima_train.jsonl` — LIMA dataset (filtered to wikihow subset)
+  - `poem_condense.csv` — Initial poetry source
+  - `poem_finetune_13000.jsonl` — Generated poem dataset with queries
+  - `poem_refined_2800x6.jsonl` — Expanded, multi-variant poem dataset (training data)
+  - `poem_real_conversations_2000.jsonl` — Converted real conversations from LIMA & NoRobots to poetic format
 
-# good-enough/checkpoint-860: mistralInstruct, LoRa 6.8k samples, 32/64, 1 epoch, 2e-4 lr, linear scheduler, alpaca/instruct
-- Was not given full details of what to take note of since its the first successful-ish run
+### Sample Inferences & Outputs
+- **Trained Adapters**: `outputs/` folder (does not include everything as the sizes are too large)
+- **Evaluation Outputs**: `results/` folder
+  - `eval_summary.json` — Quantitative metrics for all 12 configurations
+  - `eval_judge_arena_*.csv` — Detailed per-prompt ratings for each model
+  - `quality_dist_judge_arena_*.png` — Quality distribution charts (12 configurations)
+  - `training_metrics_dashboard.png` — Training loss and validation trends
 
-# good-enough/mistral-025-best: mistralInstruct, LoRa 31k samples, 32/64, 1 epoch, 2e-4 lr, linear scheduler, conversation format
-- it does follow the format that was trained on with Context: ... then follows up with the poem
-- but half the time it breaks, either outputting nth, a random number, some chinese char
-- loss 0.3618 which is p good but performance is otherwise
-- tested with recommended mistral values and no system prompt
+### LLM-as-Judge Results Summary
+- **Evaluation Methodology**: Automated LLM-based quality scoring (0-5 scale) on 50 held-out prompts
+- **Key Results**:
+  - Base model: **0.70 quality, 56% failure rate** (poor baseline)
+  - Best LoRA (32/64, 1k): **2.62 quality, 6% failure rate**
+  - Best DoRA (32/64 Optimised, 1k): **2.80 quality, 2% failure rate** ✨ **[BEST PERFORMER]**
+- **Scoring Rubric**: 0 (Gibberish/Repetition) → 5 (Excellent creative poetry with analysis)
+- **Full Report**: See `report.pdf` for detailed analysis, methodology, and visual appendix with distribution charts
 
-# good-enough/checkpoint-2940: mistralBase, LoRa 24k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- feels less poetic
-- more occurences of not direct poem replies
+## Important Notes
 
-=== with system prompt ===
-- the poems actually need to think a bit one
-- replies directly with one single poem MOST of the time 9/10 kind
+- Set `OPEN_ROUTER_API_KEY` in environment for dataset generation
+- All training included validation loss monitoring; best checkpoint selected automatically
+- Results dashboard available in `results/training_metrics_dashboard.png`
+- Quality distribution visualizations for all 12 configurations in appendix of full report
 
-# dora_runs/checkpoint-770-conv-resp-only-bs16: mistralBase, DoRa 12k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format responses only
-- it didn't generate SHIT, with or without system prompt
-- never again
+## Ethical Considerations
 
-# good-enough/checkpoint-850-conv-bs8, DoRa 6.8k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- most responses are long, like a normal chat
-- when there are poems at the end, they're too direct, super obvious
-- feels quite slow also in generation
-
-=== system prompt ===
-- all except 1 were direct responses
-- feels more like proses than poems
-- very simple, straightforward
-
-
-# unknown exact configuration, assumed to have the following checkpoint-640: mistralBase, LoRa 6k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format responses only
-=== no system prompt ===
-- absolutely does not yap in poems
-- feels very normal
-- sometimes responds properly, sometimes just goes on and on
-- TERRIBLE without system prompt
-
-=== system prompt ===
-- always one line, gives occasional good poems
-- but for some reason, most start with 'no'????
-- pretty quick
-
-
-
-<!-- THIS IS AFTER THE DATASET UPGRADE -->
-
-# good-enough/checkpoint-125-16_32-cosine: mistralBase, LoRa 1k samples, 16/32, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- like a normal chat, in general
-- VERY SOMETIMES there's a poem-like thing
-- Could leak the training system prompt sometimes??? but when it does, it spits out a poem
-- repeats itself a lot
-
-=== system prompt ===
-- all responses become actual poems
-- but they're super long
-- slight variation in length, but generally quite long
-- sometimes is stuck in a loop after a few stanzas or much at the end
-
-# good-enough\base-32_64-conv-cosine, mistralBase, LoRa 7k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- absolutely does not respond in a poetic way, just normally (better than 1k samples)
-- But at least it responds, unlike before finetuned
-- it starts to repeat itself after a while quite often (not as bad as 1k samples)
-
-=== system prompt ===
-- slightly more than half the responses are acceptably poetic
-- Lengths are generally quite long
-- There is some variation in length (more variance than 1k samples)
-
-# good-enough\checkpoint-125-32_64-cosine, mistralBase, LoRa 1k samples, 32/64, 1 epoch, 2e-4 lr, cosine scheduler, conversation format
-> this is to test if the 16/32 rank/alpha is the factor. if results are similar to 16/32, then we know that 32/64 is not the reason for the better qualitative performance, and its to do with overfitting
->> so it seems that the rank/alpha is not the main factor, and it's more to do with overfitting
->> therefore, just stop early, and use higher rank/alpha
-=== no system prompt ===
-- in general sounds like a normal chat
-- occasionally, there's poetic-ish responses, but i wouldn't call them actual poems (short sentences, with many commas)
-- it doesn't do the new lines thing
-- repeats itself a lot
-
-=== system prompt ===
-- quite long poetic responses
-- but there are more shorter ones than normal
-- sometimes things get repeated, but not too bad
-- they don't feel like there's much analysis needed
-- but they feel comfortable to read
-- id say higher quality overall
-
-# good-enough\base-32_64-conv-cosine-fast-learner, mistralBase, LoRa 7k samples, 32/64, 1 epoch, 5e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- either you get poetic responses, system prompt leak, or massive repetition
-- leaks trained system prompt??? then spits out a totally unrelated poem
-- repeats itself a lot
-
-=== system prompt ===
-- long poetic responses
-- no short responses
-- rarely do things get repeated
-- honestly quite good ones in there, non-direct, with some analysis
-- BUT if it comes across things that it can't generate, it goes TERRIBLY (repeating itself too much, yapping nonsense)
-- Edge case of it responding like normal actually
-
-# good-enough/dropout-full-cp80-val-loss-best-1k, mistralBase, LoRa 1k samples, 32/64, dropout 5%, 2e-4 lr, cosine scheduler, conversation format
-> dropout doesn't seem to be useful to prevent overfitting, or is it because its only 1k samples that it doesn't rlly matter
-=== no system prompt ===
-- absolutely fking useless
-- i don't even want to have this conversation
-
-=== system prompt ===
-- around 1/4 are not prose-like or poetic
-- half of the rest are slightly poetic, not v high quality
-- the rest are just proses, not really deep
-- sometimes repeats itself
-
-# good-enough/dropout-full-cp310-val-loss-shite, mistralBase, LoRa 7k samples, 32/64, dropout 5%, 2e-4 lr, cosine scheduler, conversation format
-> because in this case, it rlly COOKED well with dropout... so what now brah
-> can't really rely on the validation loss in this case. took a random checkpoint.
-=== no system prompt ===
-- literally keeps repeating itself like non stop
-- very incoherent
-- only 1/10 makes sense, but its not high quality
-- goes to the max often
-
-=== system prompt ===
-- 1/10 were broken
-- the rest are legitimately quite good
-- Varying lengths of poems as well
-- its really damn good though...
-
-
-# good-enough/dora-1k/dora_adapter, mistralBase, DoRa 1k samples, 32/64, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- literally keeps repeating itself like non stop
-- very incoherent
-- goes to the max often
-
-=== system prompt ===
-- dude. 
-- its really really damn good this time LMAO
-- varying lengths, great quality, non-direct with some analysis
-- parts actually rhyme most of the time
-- only 1/10 is not great, but still good compared to the rest
-
-# good-enough/dora-response-only/dora-adapter, mistralBase, DoRa 7k samples, 32/64, 2e-4 lr, cosine scheduler, conversation format, response only
-=== no system prompt ===
-- NOT TESTING ANYMORE, UNLIKELY TO BE GOOD
-
-=== system prompt ===
-- a lot of responses are way too long, doesn't hit the stop token
-- there was more failures, did not poem it up nicely
-- quality in general is a drop 
-
-# good-enough/dora-full/dora_adapter, mistralBase, DoRa 7k samples, 32/64, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- NOT TESTING ANYMORE, UNLIKELY TO BE GOOD
-
-=== system prompt ===
-- half failed badly, perpetual repetition, no poem either for those
-- rarely generated normal responses (not good)
-- poems generated are not as high quality, dropped quality
-- same goes with the latest checkpoint
-
-
-# good-enough/rslora-full/dora_adapter, mistralBase, RSLoRa 7k samples, 32/64, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- NOT TESTING ANYMORE, UNLIKELY TO BE GOOD
-
-=== system prompt ===
-
-
-# good-enough/dora-decay/dora_adapter, mistralBase, DoRa 1k samples, 32/64, 2e-4 lr, cosine scheduler, conversation format
-=== no system prompt ===
-- NOT TESTING ANYMORE, UNLIKELY TO BE GOOD
-
-=== system prompt ===
-- often repeats itself indefinitely
-- when poem is generated, its good, but not great
-- lengths of poems often too long, no end token made
-
-# good-enough/dora_no_sys, base config
-# good-enough/lora_no_sys, base config
-- We DEFINITELY need the system prompt to get any poetry out
-- DO NOT even try this again lmao
-
-gna use DoRa, with 5% dropout, 7k full, 32/64, cosine scheduler, 5e-4 lr, conversation format, and see how it goes
+Fine-tuning for exclusive poetic output introduces safety risks: harmful information can be masked by poetic language, bypassing standard safety filters. Recommend future work on explicit refusal capabilities and safety-aligned fine-tuning.

@@ -8,7 +8,7 @@
 \usepackage{tabularx}
 \usepackage{float}
 
-\title{Bardic Fine-Tuning: Transforming LLMs into Poetic Conversationalists}
+\title{Bardic Fine-Tuning: Poetic Conversationalists}
 \author{Individual Assignment}
 \date{\today}
 
@@ -22,34 +22,36 @@ This report details the fine-tuning of an open-weight Large Language Model (Mist
 
 \section{Task Definition and Dataset}
 \subsection{Objective}
-The objective of this project is to fine-tune an LLM to act as a "Bard," responding to user queries not with standard prose, but with structured, coherent, and contextually relevant poetry. The model must maintain conversational capabilities while strictly adhering to the poetic format dictated by the system prompt.
+The objective of this project is to fine-tune an LLM to act as a "Bard," responding to user queries not with standard prose, but with structured, coherent, and contextually relevant poetry. The model must maintain conversational capabilities while strictly adhering to the poetic format trained.
 
 \subsection{Dataset Curation}
 The dataset was constructed in multiple phases to ensure high-quality poetic generation (see \texttt{notebooks/01\_Data\_Generator.ipynb} and \texttt{notebooks/01\_Data\_Refiner.ipynb} for implementation details):
 \begin{itemize}
     \item \textbf{Initial Seed:} Sourced from the Poem Comprehensive Dataset (PCD) (Yousef et al., 2018). Mistral Small Creative (via OpenRouter) was used to generate potential user prompts and English translations/meanings of the original verses.
-    \item \textbf{Refinement and Expansion:} The initial dataset proved limiting. It was expanded to include various length poems that directly answer queries. Furthermore, standard conversational datasets (LIMA and NoRobots) were translated into poetic formats to teach the model how to handle normal chat interactions poetically.
+    \item \textbf{Refinement and Expansion:} The initial dataset proved limiting. It was expanded to include various length poems that directly answer queries. Furthermore, specific subsets of standard conversational datasets were translated into poetic formats to teach the model how to handle normal chat interactions poetically. Specifically, the \texttt{wikihow} subset of the LIMA dataset was used to teach the model how to provide instructional responses in poetry, while the \texttt{Open QA}, \texttt{Closed QA}, and \texttt{Summarize} categories from the NoRobots dataset were selected to mitigate catastrophic forgetting of factual knowledge by teaching the model to embed factual answers within its poetic structures.
 \end{itemize}
 
 \section{Experimental Setup}
 \subsection{Model Selection}
-Initial experiments were conducted using Llama 3.1 8B (Base and Instruct). However, these models struggled to consistently adopt the poetic format and often failed to produce high-quality results regardless of the configuration. The base model was subsequently switched to Mistral Nemo (12B). The increased parameter count and different architectural nuances of Mistral Nemo yielded significantly better adherence to the poetic constraints.
+Initial experiments were conducted using Llama 3.1 8B (Base and Instruct). However, these models struggled to consistently adopt the poetic format and often failed to produce high-quality results regardless of the configuration. The base model was subsequently switched to the Unsloth-quantized Mistral Nemo 12B checkpoint (\texttt{unsloth/Mistral-Nemo-Base-2407}). The increased parameter count and different architectural nuances of Mistral Nemo yielded significantly better adherence to the poetic constraints.
 
 \subsection{Fine-Tuning Methodology}
 The models were fine-tuned using Parameter-Efficient Fine-Tuning (PEFT) methods, specifically Low-Rank Adaptation (LoRA) and Weight-Decomposed Low-Rank Adaptation (DoRA), utilizing the Unsloth library for optimized training. 
 
-Over 10 hyperparameter configurations were tested. Key configurations included:
+The "control" configuration established for baseline comparisons utilized LoRA with a Rank of 32, Alpha of 64, a learning rate of 2e-4, and a linear scheduler, trained on the full conversational data format. Variations in data formatting were also tested, including the Alpaca format and training exclusively on response loss (masking the user prompts). However, these alternative formatting approaches yielded inferior results compared to the standard conversational format.
+
+Over 10 hyperparameter configurations were tested. Key configurations are listed below with their deviations from the Control baseline (Rank 32, Alpha 64, LR 2e-4, Decay 0.001 Cosine Scheduler):
 \begin{itemize}
-    \item \textbf{Config 1 (Baseline LoRA):} Rank 16, Alpha 32, LR 2e-4, Cosine Scheduler.
-    \item \textbf{Config 2 (High Rank LoRA):} Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler.
-    \item \textbf{Config 3 (Fast Learner LoRA):} Rank 32, Alpha 64, LR 5e-4, Cosine Scheduler.
-    \item \textbf{Config 4 (Dropout LoRA):} Rank 32, Alpha 64, LR 2e-4, 5\% Dropout.
-    \item \textbf{Config 5 (DoRA):} Rank 32, Alpha 64, LR 2e-4, Cosine Scheduler.
+    \item \textbf{Low Rank LoRA:} Rank 16, Alpha 32.
+    \item \textbf{Fast Learner LoRA:} LR 5e-4.
+    \item \textbf{Dropout LoRA:} 5\% Dropout added.
+    \item \textbf{DoRA:} Weight decomposition applied (no other changes).
+    \item \textbf{Weight Decay}: 0.01
 \end{itemize}
 
 \section{Training Dynamics and Signals}
-During the later stages of the dataset upgrade, validation loss was introduced as the primary metric for checkpoint selection. 
-Qualitative observations indicated severe overfitting when training on the full 7k sample dataset for extended periods, leading to infinite repetition loops during generation. Consequently, early stopping was employed, saving the model at the lowest validation loss (e.g., around 1k samples) rather than allowing it to plateau or degrade.
+After the dataset was upgraded, validation loss was introduced as the primary metric for checkpoint selection. 
+Qualitative observations indicated severe overfitting when training on the full 7k sample dataset for extended periods, leading to infinite repetition loops during generation. Consequently, early stopping was employed, saving the model at the lowest validation loss (normally around 1k samples processed) rather than allowing it to plateau or degrade.
 
 \begin{figure}[H]
     \centering
@@ -61,10 +63,42 @@ Qualitative observations indicated severe overfitting when training on the full 
 
 \section{Evaluation}
 \subsection{Methodology}
-Evaluation was conducted on a held-out set of 21 general conversational prompts. Because the outputs are highly subjective (poetry), a rubric-based quantitative metric was defined:
+Evaluation was conducted on a held-out set of 21 general conversational prompts. Because the outputs are highly subjective (poetry), a rubric-based quantitative metric was defined with concrete examples:
+
 \begin{enumerate}
-    \item \textbf{Quality Score (1-5):} Ranging from 1 (Gibberish/Repetition) to 5 (Excellent, creative poetry with non-direct analysis).
-    \item \textbf{Format Adherence:} Binary metric indicating if the output was a poem.
+    \item \textbf{Quality Score (1-5):} Ranging from 0 (Total Gibberish/Infinite Repetition) to 5 (Excellent, creative poetry with non-direct analysis).
+\end{enumerate}
+
+\subsubsection{Quality Rubric with Examples}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|}
+\toprule
+\textbf{Score} & \textbf{Example Output} \\
+\midrule
+\textbf{0 -- Gibberish} & \textit{``repetition repetition repetition repetition...''} (infinite loop or broken tokens) \\
+\midrule
+\textbf{1 -- Basic Conversation} & \textit{``The answer to your question is yes. Yes, it is true.''} (standard prose, no poetic structure) \\
+\midrule
+\textbf{2 -- Prose-like} & \textit{``A journey begins with a single step, and steps lead us forward through time and space.''} (metaphorical but lacks consistent structure or rhythm) \\
+\midrule
+\textbf{3 -- Basic Poem-like} & \textit{``A step is taken, then another one, / The path ahead has just begun.''} (clear poetic form with simple rhyme) \\
+\midrule
+\textbf{4 -- Obvious, Structured} & \textit{``In morning's light the journey starts to bloom, / A single stride transcends the shadowed room, / Each step becomes a verse of forward grace, / A measured march through time and sacred space.''} (A rhyme scheme employed, consistent meter, direct meaning) \\
+\midrule
+\textbf{5 -- Excellent, Non-direct Analysis} & \textit{``The genesis lies not within the sole, / But in the courage housed within the soul; / To move is but to shed what binds us fast, / And every dawn erases every past.''} (sophisticated language, non-obvious interpretation, thematic depth) \\
+\bottomrule
+\end{tabularx}
+\caption{Quality scoring rubric with representative examples from evaluation outputs.}
+\label{tab:quality_rubric}
+\end{table}
+
+\subsubsection{Additional Metrics}
+
+\begin{enumerate}
+    \setcounter{enumi}{1}
+    \item \textbf{Format Adherence:} Binary metric indicating if the output was a recognizable poem (presence of line breaks, rhyme schemes, or poetic structure).
     \item \textbf{Failure Rate:} Percentage of outputs resulting in infinite repetition or broken tokens.
 \end{enumerate}
 
@@ -102,9 +136,10 @@ The DoRA configuration trained on 1k samples emerged as the best performer. It g
 
 \subsection{Key Findings}
 \begin{itemize}
-    \item \textbf{System Prompt Necessity:} Even after fine-tuning, the models required a system prompt to trigger the poetic generation reliably. Without it, the models defaulted to standard prose or became incoherent.
+    \item \textbf{System Prompt Necessity:} Even after fine-tuning, the models required a system prompt to trigger the poetic generation reliably. Without it, the models defaulted to standard prose or became incoherent. A potential reason for this is that the base model (Mistral Nemo) has strong pre-existing conversational priors. The fine-tuning process likely learned to associate the specific poetic behavior with the presence of the system prompt context, rather than overwriting the model's default conversational behavior entirely.
     \item \textbf{Overfitting vs. Dataset Size:} Training on the full 7k dataset often led to catastrophic repetition. Reducing the training duration/samples (e.g., 1k samples) significantly improved generation quality and stopped the infinite looping, suggesting the model quickly memorized the format but struggled to generalize if pushed too far.
     \item \textbf{Rank/Alpha Impact:} Increasing Rank/Alpha from 16/32 to 32/64 did not drastically change the qualitative output, confirming that repetition issues were tied to overfitting rather than bottlenecked adapter capacity.
+    \item \textbf{DoRA's Superiority for Language Tasks:} The decision to test Weight-Decomposed Low-Rank Adaptation (DoRA) was motivated by literature suggesting its learning patterns closely mimic full fine-tuning, making it particularly effective for complex reasoning and instruction tuning (Liu et al., 2024). This claim held true in our experiments; the DoRA configuration consistently produced more creative, structurally sound, and analytically deep poetry compared to standard LoRA, without adding any inference overhead.
 \end{itemize}
 
 \subsection{Limitations and Failure Modes}
@@ -119,5 +154,14 @@ All training was conducted using the \texttt{unsloth} library. Depending on the 
 
 \subsection{Ethical Considerations}
 Fine-tuning an LLM to respond exclusively in poetry introduces unique risks. Harmful, biased, or dangerous information could be masked within the aesthetic appeal of a poem, potentially bypassing standard safety filters or making malicious content seem benign or profound. Future work should include a safety-alignment phase to ensure the "Bard" refuses harmful requests gracefully rather than fulfilling them poetically.
+
+\section{References}
+\begin{itemize}
+    \item Yousef, W. A., Ibrahime, O. M., Madbouly, T. M., Mahmoud, M. A., El-Kassas, A. H., Hassan, A. O., \& Albohy, A. R. (2018). \textit{Poem Comprehensive Dataset (PCD)}. \url{https://hci-lab.github.io/ArabicPoetry-1-Private/#PCD}
+    \item Liu, S.-Y., Wang, C.-Y., Yin, H., Molchanov, P., Wang, Y.-C. F., Cheng, K.-T., \& Chen, M.-H. (2024). \textit{DoRA: Weight-Decomposed Low-Rank Adaptation}. arXiv preprint arXiv:2402.09353. \url{https://arxiv.org/abs/2402.09353}
+    \item Zhou, C., Liu, P., Xu, P., Iyer, S., Sun, J., Mao, Y., Ma, X., Efrat, A., Yu, P., Yu, L., et al. (2023). \textit{LIMA: Less Is More for Alignment}. Hugging Face repository. \url{https://huggingface.co/datasets/GAIR/lima}
+    \item Rajani, N., Tunstall, L., Beeching, E., Lambert, N., Rush, A. M., \& Wolf, T. (2023). \textit{No Robots}. Hugging Face repository. \url{https://huggingface.co/datasets/HuggingFaceH4/no_robots}
+    \item Unsloth AI. (2024). \textit{Mistral-Nemo-Base-2407} (quantized). Hugging Face repository. \url{https://huggingface.co/unsloth/Mistral-Nemo-Base-2407}
+\end{itemize}
 
 \end{document}

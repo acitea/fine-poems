@@ -1,0 +1,13 @@
+Configuration,Avg Quality (0-5),Format Adherence (%),Failure Rate (%),Valid Samples,Total Samples,Errors
+judge_arena_base,0.7,8.0,56.00000000000001,50,50,0
+judge_arena_dora-1k,2.4,68.0,10.0,50,50,0
+judge_arena_dora-optimised-1k,2.8,82.0,2.0,50,50,0
+judge_arena_dora-optimised-64-128-1k,1.98,56.00000000000001,22.0,50,50,0
+judge_arena_dora-optimised-64-128,0.0,0.0,98.0,50,50,0
+judge_arena_lora-16-32-1k,2.56,80.0,20.0,50,50,0
+judge_arena_lora-base-1k,2.62,80.0,6.0,50,50,0
+judge_arena_lora-base-full,1.72,44.0,28.000000000000004,50,50,0
+judge_arena_lora-decay,2.38,68.0,6.0,50,50,0
+judge_arena_lora-dropout-1k,2.08,57.99999999999999,14.000000000000002,50,50,0
+judge_arena_lora-dropout-full,2.56,74.0,6.0,50,50,0
+judge_arena_lora-learner,1.86,50.0,26.0,50,50,0

@@ -1,0 +1,98 @@
+{
+  "judge_arena_base": {
+    "avg_quality": 0.7,
+    "format_adherence_pct": 8.0,
+    "failure_rate_pct": 56.00000000000001,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_dora-1k": {
+    "avg_quality": 2.4,
+    "format_adherence_pct": 68.0,
+    "failure_rate_pct": 10.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_dora-optimised-1k": {
+    "avg_quality": 2.8,
+    "format_adherence_pct": 82.0,
+    "failure_rate_pct": 2.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_dora-optimised-64-128-1k": {
+    "avg_quality": 1.98,
+    "format_adherence_pct": 56.00000000000001,
+    "failure_rate_pct": 22.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_dora-optimised-64-128": {
+    "avg_quality": 0.0,
+    "format_adherence_pct": 0.0,
+    "failure_rate_pct": 98.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-16-32-1k": {
+    "avg_quality": 2.56,
+    "format_adherence_pct": 80.0,
+    "failure_rate_pct": 20.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-base-1k": {
+    "avg_quality": 2.62,
+    "format_adherence_pct": 80.0,
+    "failure_rate_pct": 6.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-base-full": {
+    "avg_quality": 1.72,
+    "format_adherence_pct": 44.0,
+    "failure_rate_pct": 28.000000000000004,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-decay": {
+    "avg_quality": 2.38,
+    "format_adherence_pct": 68.0,
+    "failure_rate_pct": 6.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-dropout-1k": {
+    "avg_quality": 2.08,
+    "format_adherence_pct": 57.99999999999999,
+    "failure_rate_pct": 14.000000000000002,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-dropout-full": {
+    "avg_quality": 2.56,
+    "format_adherence_pct": 74.0,
+    "failure_rate_pct": 6.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  },
+  "judge_arena_lora-learner": {
+    "avg_quality": 1.86,
+    "format_adherence_pct": 50.0,
+    "failure_rate_pct": 26.0,
+    "sample_count": 50,
+    "error_count": 0,
+    "valid_count": 50
+  }
+}
